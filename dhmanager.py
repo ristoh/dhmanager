@@ -36,7 +36,7 @@ class DnsManager(object):
         self.public_ip = r.json()['ip']
         return self.public_ip
 
-    def dns_reset_dynamic_ip(self, record):
+    def dns_set_dynamic_ip(self, record):
         r_type = 'A'
         value = self.get_current_ip()
         self.dns_add_record(record, r_type, value)
@@ -77,6 +77,9 @@ def get_parser():
                         help='the DNS record value e.g. 98.100.101.55')
     parser.add_argument('--comment',
                         help='want to add a comment to your record')
+    parser.add_argument('--dns-set-dynamic-ip', action='store_true',
+                        help='Set a record to your dynamic IP')
+
     return parser
 
 
@@ -91,12 +94,14 @@ def cmd_line_runner():
         r_type = args['type']
         value = args['value']
         comment = args['comment']
-        if not record or not r_type or not value:
+        if not record:
             raise ValueError('you need to define record, type and value')
         if args['dns_add_record']:
             manager.dns_add_record(record, r_type, value, comment)
         if args['dns_remove_record']:
             manager.dns_remove_record(record, r_type, value)
+        if args['dns_set_dynamic_ip']:
+            manager.dns_set_dynamic_ip(record)
 
 
 if __name__ == '__main__':
