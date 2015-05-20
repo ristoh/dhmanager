@@ -31,6 +31,16 @@ class DnsManager(object):
         else:
             print '%s - %s' % (r.status_code, r.text)
 
+    def get_current_ip(self):
+        r = requests.get(r'http://jsonip.com')
+        self.public_ip = r.json()['ip']
+        return self.public_ip
+
+    def dns_reset_dynamic_ip(self, record):
+        r_type = 'A'
+        value = self.get_current_ip()
+        self.dns_add_record(record, r_type, value)
+
     def dns_list_records(self):
         cmd = 'dns-list_records'
         resource = self.base_url % (self.key, uuid.uuid4(), cmd)
