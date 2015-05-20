@@ -9,9 +9,8 @@ import requests
 import argparse
 import logging
 
-f = open('KEYFILE', 'r')
-key = f.readline().strip()
-f.close()
+with open('KEYFILE', 'r') as f:
+    key = f.readline().strip()
 
 logger = logging.getLogger()
 logger.setLevel(logging.DEBUG)
@@ -74,7 +73,6 @@ def get_parser():
 def cmd_line_runner():
     parser = get_parser()
     args = vars(parser.parse_args())
-    logging.debug(args.keys())
     manager = DnsManager(key)
     if args['dns_list_records']:
         manager.dns_list_records()
