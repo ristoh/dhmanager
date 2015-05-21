@@ -7,13 +7,23 @@ Created by: risto.haukioja@gmail.com
 import uuid
 import requests
 import argparse
+import urllib
+import urlparse
 import logging
-
-with open('KEYFILE', 'r') as f:
-    key = f.readline().strip()
+import os
+from os.path import expanduser
 
 logger = logging.getLogger()
 logger.setLevel(logging.DEBUG)
+
+
+def get_key():
+    try:
+        file_name = os.path.join(expanduser('~'), '.dhkeyfile')
+        with open(file_name, 'r') as f:
+            return f.readline().strip()
+    except IOError:
+        exit('~/.dhkeyfile could not be found')
 
 
 class DnsManager(object):
@@ -22,7 +32,23 @@ class DnsManager(object):
 
     def __init__(self, key):
         self.key = key
-        self.base_url = 'https://api.dreamhost.com/?key=%s&unique_id=%s&cmd=%s'
+        self.base_url = 'https://api.dreamhost.com/?'
+
+    def _resource_url(self, **kwargs):
+        query = {
+            'id': str(uuid.uuid4()),
+            'key': self.key
+        }
+        keys = ['cmd', 'record', 'type', 'value', 'comment']
+        for key in keys:
+            if kwargs.get(key, None):
+                query.update({key: kwargs[key]})
+
+        url_parts = list(urlparse.urlparse(self.base_url))
+        url_parts[4] = urllib.urlencode(query)
+        logging.debug(url_parts)
+
+        return urlparse.urlunparse(url_parts)
 
     def _get_resource(self, resource):
         r = requests.get(resource)
@@ -43,22 +69,23 @@ class DnsManager(object):
 
     def dns_list_records(self):
         cmd = 'dns-list_records'
-        resource = self.base_url % (self.key, uuid.uuid4(), cmd)
+        resource = self._resource_url(cmd=cmd)
         print self._get_resource(resource)
 
-    def dns_add_record(self, record, r_type, value, comment=None):
+    def dns_add_record(self, record, type, value, comment=None):
         cmd = 'dns-add_record'
-        resource_url = self.base_url + '&record=%s&type=%s&value=%s&comment=%s'
-        resource = resource_url % (self.key, uuid.uuid4(), cmd, record, r_type,
-                                   value, comment)
+        resource = self._resource_url(cmd=cmd, record=record,
+                                      type=type, value=value,
+                                      comment=comment)
         print self._get_resource(resource)
+        self.dns_list_records()
 
-    def dns_remove_record(self, record, r_type, value):
+    def dns_remove_record(self, record, type, value):
         cmd = 'dns-remove_record'
-        resource_url = self.base_url + '&record=%s&type=%s&value=%s'
-        resource = resource_url % (self.key, uuid.uuid4(), cmd, record, r_type,
-                                   value)
+        resource = self._resource_url(cmd=cmd, record=record, type=type,
+                                      value=value)
         print self._get_resource(resource)
+        self.dns_list_records()
 
 
 def get_parser():
@@ -69,6 +96,10 @@ def get_parser():
                         help="Add anew dns record")
     parser.add_argument('-r', '--dns-remove-record', action='store_true',
                         help='Remove a dns record')
+    parser.add_argument('-d', '--dns-set-dynamic-ip', action='store_true',
+                        help='Set a record to your dynamic IP')
+    parser.add_argument('--key',
+                        help='DreamHost API key')
     parser.add_argument('--record',
                         help='Record to be changed e.g. my.foo.bar')
     parser.add_argument('--type',
@@ -77,16 +108,19 @@ def get_parser():
                         help='the DNS record value e.g. 98.100.101.55')
     parser.add_argument('--comment',
                         help='want to add a comment to your record')
-    parser.add_argument('--dns-set-dynamic-ip', action='store_true',
-                        help='Set a record to your dynamic IP')
-
     return parser
 
 
 def cmd_line_runner():
     parser = get_parser()
     args = vars(parser.parse_args())
+    if not args['key']:
+        key = get_key()
+    else:
+        key = args['key']
+    logging.debug(key)
     manager = DnsManager(key)
+    logging.debug(manager)
     if args['dns_list_records']:
         manager.dns_list_records()
     else:
@@ -94,8 +128,6 @@ def cmd_line_runner():
         r_type = args['type']
         value = args['value']
         comment = args['comment']
-        if not record:
-            raise ValueError('you need to define record, type and value')
         if args['dns_add_record']:
             manager.dns_add_record(record, r_type, value, comment)
         if args['dns_remove_record']:

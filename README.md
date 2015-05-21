@@ -1,5 +1,5 @@
 # dhmanager
-Python Library for Managing DreamHost DNS records
+Python Library for Managing DreamHost DNS records. Runs under Python 2.x.
 
 Manage your DNS Records at DreamHost.
 
@@ -13,4 +13,7 @@ Manage your DNS Records at DreamHost.
 python dhmanager.py
 ```
 
-
+alternatively you can store the DreamHost API key to a file at:
+```
+$HOME/.dhkeyfile
+```
