@@ -1,3 +1,4 @@
+#!/usr/bin/python
 # -*- coding: utf-8 -*- -
 """dhmanager.py
 
@@ -9,12 +10,8 @@ import requests
 import argparse
 import urllib
 import urlparse
-import logging
 import os
 from os.path import expanduser
-
-logger = logging.getLogger()
-logger.setLevel(logging.DEBUG)
 
 
 def get_key():
@@ -46,7 +43,6 @@ class DnsManager(object):
 
         url_parts = list(urlparse.urlparse(self.base_url))
         url_parts[4] = urllib.urlencode(query)
-        logging.debug(url_parts)
 
         return urlparse.urlunparse(url_parts)
 
@@ -118,9 +114,7 @@ def cmd_line_runner():
         key = get_key()
     else:
         key = args['key']
-    logging.debug(key)
     manager = DnsManager(key)
-    logging.debug(manager)
     if args['dns_list_records']:
         manager.dns_list_records()
     else:
